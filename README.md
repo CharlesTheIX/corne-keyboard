@@ -1,67 +1,93 @@
-# Corne Keyboard
+# Corn Keyboard
 
-# Table of Content
+_Correct as of: August 2025_
+
+_Resources:_
+
+- _[QMK documentation](https://docs.qmk.fm/newbs)_
+- _[Josean's video](https://www.youtube.com/watch?v=AA8fw2MbpYg)_
+- _[BXO511's comment](https://www.reddit.com/r/olkb/comments/10baza0/hex_to_uf2_for_rp2040/)_
+- _[Mechboards repository](https://github.com/qmk/qmk_firmware/tree/master/keyboards/mechboards/crkbd)_
+
+## Table of Contents
 
 - [Introduction](#introduction)
-- [QML Setup](#qmk-setup)
+- [Dependencies](#dependencies)
+  - [QMK](#qmk)
+  - [C Make](#c-make)
 - [Development](#development)
 
 ## Introduction
 
-- This documentation is for creating and set up of a Corne keyboard on macOS.
+- This documentation aims to:
 
-- This documentation assumes that you already have Homebrew install on the machine you are developing on.
+  - Keep a record of how I was able to get my Corne (Helidox) Choc keyboard from [Mechboards](https://mechboards.co.uk) flashed using my machine
+  - Integrate this repo with the [QMK](https://qmk.fm) cli
 
-- This project assumes some knowledge of the C programming language.
+- This documentation assumes the following:
+  - You are using macOS (Apple Silicon)
+  - You have Xcode installed
+  - You have some knowledge of C
+  - You have [Homebrew](https://brew.sh) installed
 
-## QMK setup
+## Dependencies
 
-Install QMK using Homebrew:
+### QMK
+
+Homebrew has a tap that can be used to install QMK onto the machine:
 
 ```bash
 brew install qmk/qmk/qmk
+
+# To check if it is available
+qmk --version
+# 1.1.8
 ```
 
-Navigate to the [QMK toolbox Github](https://github.com/qmk/qmk_toolbox/releases) in a browser and download the .pkg file for macOS.
-
-Once downloaded, run the installation of the application (note that you may need to go to you privacy settings and allow this application to open and run).
-
-Once the installation of the toolbox is complete, setup a QMK project.
-
-Running this command will clone the qmk firmware repo to `~/qmk_firmware`.
+Setup the QMK environment by cloning the QMK firmware into your home path - this is the default location.
+You may be prompted for inputs, this record selected the defaults - I may have made things more complicated because of this.
 
 ```bash
-# Follow the prompts of this command
 qmk setup
+
+# Creates a directory at ~/qmk_firmware
 ```
 
-The name of the keyboard is required to continue, this can be found by using the command:
+> ---
+>
+> `NOTE:` QMK Toolbox
+>
+> There is a tool that can be installed called [QMK Toolbox](https://qmk.fm/toolbox).
+> It was downloaded for this record but never used due to the microchips in the build.
+>
+> ---
+
+### C make
+
+This project used C with QMK to create the firmware.
+It may or may not be needed but during this project I installed `make` via Homebrew:
 
 ```bash
-qmk list-keyboards
-
-# As this project uses a Corne keyboard I can find the name of the key board using
-qmk list-keyboards | grep "crkbd"
-
-# This project is using the crkbd/rev1
-# NOTE - I may need to use mechboards/crkbd/pro
+brew install make
 ```
-
-To setup a new keymap run:
-
-```bash
-qmk new-keymap -kb crkbd/rev1 -km CharlesTheIX
-# NOTE - This command ask you for a converter, I am currently using option [1] - None
-```
-
-This will create a new keymap setup in the `~/qmk_firmware/keyboards/crkbd/keymaps/CharlesTheIX`.
-
-Change your working directory to this location to start development.
-
-```bash
-cd ~/qmk_firmware/keyboards/crkbd/keymaps/CharlesTheIX
-```
-
-`This repository is the contents of that keymap directory.`
 
 ## Development
+
+List the files and what they do, based on the Mechboards initial set up.
+
+using the sync bash script to move the current repo to the correct place to use the qmk compose and flash commands.
+
+## Compilation
+
+I started this project believing that the boards were Pro-Mirco (as in the product description), however it turned out that they are RP2040 boards.
+
+This caused much confusion until I found out about [converters](https://docs.qmk.fm/feature_converters#converters) - this compilation uses a conversion:
+
+```bash
+# qmk compile -e CONVERT_TO=promicro_rp2040 -kb mechboards/crkbd/pro -km default
+qmk compile -e CONVERT_TO=rp2040_ce -kb charlestheix -km default
+```
+
+This will create a `.uf2` file in the ~/qmk_firmware directory. This file will be needed in the flashing step.
+
+## Flashing
