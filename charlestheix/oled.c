@@ -6,10 +6,17 @@
 // --------------------
 
 bool has_init = false;
+bool os_enabled = true;
 static uint8_t last_hue;
 static uint8_t last_sat;
 static uint8_t last_val;
 static uint8_t last_mode;
+bool wpm_enabled = true;
+bool rgb_enabled = true;
+bool key_enabled = true;
+bool rate_enabled = true;
+bool layers_enabled = true;
+bool small_logo_enabled = true;
 static char detected_os_str[8] = "";
 static uint16_t current_keycode = 0xFF;
 char basic_codes_to_name[57] = {' ', ' ', ' ', ' ', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', 'R', 'E', 'B', 'T', '_', '-', '=', '[', ']', '\\', '#', ';', '\'', '`', ',', '.', '/'};
@@ -27,9 +34,7 @@ static const char *depad_str(const char *depad_str, char depad_char) {
 
 // A callable function to render a spacer of length char_length
 static void render_spacer(uint8_t char_length) {
-  // The length of one character
   static const char PROGMEM spacer_char[] = {8, 8, 8, 8, 8, 8, 8};
-
   if (char_length > 5) char_length = 5;
   for (uint8_t i = 0; i < char_length; i++) {
     oled_write_raw_P(spacer_char, sizeof(spacer_char));
@@ -197,7 +202,6 @@ const char *keycode_string(uint16_t keycode) {
       keycode_str = "Undef\0";
       break;
   }
-
   return keycode_str;
 }
 
@@ -232,7 +236,6 @@ const char *layer_string(uint32_t layer) {
     default:
       return get_u16_str(layer, ' ');
   }
-
   return layer_str;
 }
 
@@ -243,17 +246,17 @@ void render_rgb_info(void) {
   last_val = rgb_matrix_get_val();
   last_mode = rgb_matrix_get_mode();
   oled_set_cursor(0, 6);
-  oled_write("H:", false);
-  oled_write(depad_str(get_u16_str(last_hue, ' '), ' '), false);
-  oled_set_cursor(0, 7);
-  oled_write("S:", false);
-  oled_write_ln(depad_str(get_u16_str(last_sat, ' '), ' '), false);
-  oled_set_cursor(0, 8);
-  oled_write("V:", false);
-  oled_write_ln(depad_str(get_u16_str(last_val, ' '), ' '), false);
-  oled_set_cursor(0, 9);
   oled_write("M:", false);
   oled_write_ln(depad_str(get_u16_str(last_mode, ' '), ' '), false);
+  oled_set_cursor(0, 7);
+  oled_write("H:", false);
+  oled_write(depad_str(get_u16_str(last_hue, ' '), ' '), false);
+  oled_set_cursor(0, 8);
+  oled_write("S:", false);
+  oled_write_ln(depad_str(get_u16_str(last_sat, ' '), ' '), false);
+  oled_set_cursor(0, 9);
+  oled_write("V:", false);
+  oled_write_ln(depad_str(get_u16_str(last_val, ' '), ' '), false);
 }
 
 // A callable function that re-initializes the master oled
@@ -261,27 +264,35 @@ void oled_reinit_master(void) {
   has_init = true;
   oled_init(OLED_ROTATION_270);
 
-  oled_clear();
-  oled_set_cursor(0, 0);
-  oled_write("Layer", false);
-  render_spacer(5);
-  oled_write_ln("Zero", false);
+  if (layers_enabled) {
+    oled_clear();
+    oled_set_cursor(0, 0);
+    oled_write("Layer", false);
+    render_spacer(5);
+    oled_write_ln("Zero", false);
+  }
+  
+  if (key_enabled) {
+    oled_set_cursor(0, 4);
+    oled_write_ln("Key", false);
+    render_spacer(3);
+    oled_advance_page(false);
+    oled_write_ln("None", false);
+  }
 
-  oled_set_cursor(0, 4);
-  oled_write_ln("Key", false);
-  render_spacer(3);
-  oled_advance_page(false);
-  oled_write_ln("None", false);
+  if (os_enabled) {
+    oled_set_cursor(0, 8);
+    oled_write_ln("OS", false);
+    render_spacer(2);
+    oled_advance_page(false);
+    oled_write_ln(detected_os_str, false);
+  }
 
-  oled_set_cursor(0, 8);
-  oled_write_ln("OS", false);
-  render_spacer(2);
-  oled_advance_page(false);
-  oled_write_ln(detected_os_str, false);
-
-  oled_set_cursor(0, 12);
-  oled_write_ln("Rate", false);
-  render_spacer(4);
+  if (rate_enabled) {
+    oled_set_cursor(0, 12);
+    oled_write_ln("Rate", false);
+    render_spacer(4);
+  }
 }
 
 // A callable function that re-initializes the slave oled
@@ -289,19 +300,26 @@ void oled_reinit_slave(void) {
   has_init = true;
   oled_init(OLED_ROTATION_270);
 
-  oled_clear();
-  oled_set_cursor(0, 0);
-  oled_write_ln("WPM", false);
-  render_spacer(3);
-  oled_advance_page(false);
-  oled_write_ln(depad_str(get_u16_str(get_current_wpm(), ' '), ' '), false);
+  if (wpm_enabled) {
+    oled_clear();
+    oled_set_cursor(0, 0);
+    oled_write_ln("WPM", false);
+    render_spacer(3);
+    oled_advance_page(false);
+    oled_write_ln(depad_str(get_u16_str(get_current_wpm(), ' '), ' '), false);
+  }
 
-  oled_set_cursor(0, 4);
-  oled_write_ln("RGB", false);
-  render_spacer(3);
-  render_rgb_info();
-  // oled_set_cursor(0, 13);
-  // render_small_logo();''''"'"'"''';/////?!!/-=[!@£$%^&*()-=[]\_+{__h-_this_+{}||||||~`~~}]"
+  if (rgb_enabled) {
+    oled_set_cursor(0, 4);
+    oled_write_ln("RGB", false);
+    render_spacer(3);
+    render_rgb_info();
+  }
+  
+  if (small_logo_enabled) {
+    oled_set_cursor(0, 13);
+    render_small_logo();
+  }
 }
 
 // --------------------
@@ -311,14 +329,12 @@ void oled_reinit_slave(void) {
 // A functioned called when the oled initializes
 // Sets the initial rotation of the oled screens
 oled_rotation_t oled_init_kb(oled_rotation_t rotation) {
-  // if (is_keyboard_master()) return OLED_ROTATION_270;
   return rotation;
 }
 
 // A function that runs when the os is detected and stores that OS display name
 bool process_detected_host_os_kb(os_variant_t detected_os) {
   if (!process_detected_host_os_user(detected_os)) return false;
-
   switch (detected_os) {
     case OS_MACOS:
       strcpy(detected_os_str, "MacOS");
@@ -337,7 +353,6 @@ bool process_detected_host_os_kb(os_variant_t detected_os) {
       strcpy(detected_os_str, "Unkno");
       break;
   }
-
   return true;
 }
 
@@ -354,7 +369,7 @@ void keyboard_post_init_kb(void) {
 // A function that fires whenever the layer state changes
 layer_state_t layer_state_set_kb(layer_state_t state) {
   state = layer_state_set_user(state);
-  if (has_init) {
+  if (has_init && layers_enabled) {
     oled_set_cursor(0, 2);
     oled_write_ln(layer_string(get_highest_layer(state)), false);
   }
@@ -375,16 +390,14 @@ bool process_record_kb(uint16_t keycode, keyrecord_t *record) {
 uint16_t loop_rate = 0;
 void housekeeping_task_kb(void) {
   if (is_keyboard_master()) {
-    if (has_init) {
+    if (has_init && rate_enabled) {
       static uint32_t loop_count = 0;
       static fast_timer_t loop_time = 0;
       loop_count++;
-
       if (timer_elapsed_fast(loop_time) > 1000) {
         loop_time = timer_read_fast();
         loop_rate = loop_count > UINT16_MAX ? UINT16_MAX : loop_count;
         loop_count = 0;
-
         if (is_oled_on()) {
           oled_set_cursor(0, 14);
           oled_write(depad_str(get_u16_str(loop_rate, ' '), ' '), false);
@@ -392,7 +405,6 @@ void housekeeping_task_kb(void) {
       }
     }
   }
-
   if (is_oled_on() && last_input_activity_elapsed() > OLED_TIMEOUT) oled_off();
 }
 
@@ -418,7 +430,7 @@ bool oled_task_kb(void) {
   
   static uint16_t last_keycode = 0xFF;
   if (is_keyboard_master()) {
-    if (last_keycode != current_keycode) {
+    if (last_keycode != current_keycode && key_enabled) {
       oled_set_cursor(0, 6);
       if (current_keycode < ARRAY_SIZE(basic_codes_to_name)) {
         oled_write_char(basic_codes_to_name[current_keycode], false);
@@ -426,18 +438,17 @@ bool oled_task_kb(void) {
       } else {
         oled_write_ln(keycode_string(current_keycode), false);
       }
-
       last_keycode = current_keycode;
     }
     return false;
   }
 
   static uint16_t last_wpm = 0;
-  if (rgb_matrix_get_hue() != last_hue || rgb_matrix_get_sat() != last_sat || rgb_matrix_get_val() != last_val || rgb_matrix_get_mode() != last_mode) {
+  if ((rgb_matrix_get_hue() != last_hue || rgb_matrix_get_sat() != last_sat || rgb_matrix_get_val() != last_val || rgb_matrix_get_mode() != last_mode) && rgb_enabled) {
     render_rgb_info();
   }
 
-  if (last_wpm != get_current_wpm()) {
+  if (last_wpm != get_current_wpm() && wpm_enabled) {
     last_wpm = get_current_wpm();
     oled_set_cursor(0, 2);
     oled_write_ln(depad_str(get_u16_str(last_wpm, ' '), ' '), false);
