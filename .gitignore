@@ -1,4 +1,3 @@
 .vscode
-# index.html
-firmware.uf2
-**/**/logo.bmp
+*.uf2
+**/assets/*.bmp

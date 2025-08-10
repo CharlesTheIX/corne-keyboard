@@ -1,0 +1,5 @@
+# For the generate_logos script to run two files are required in this directory:
+# master_logo.bmp
+# salve_logo.bmp
+
+# These logos should be the size of the oled: 128 x 32 pixels
